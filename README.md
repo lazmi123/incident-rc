@@ -19,6 +19,8 @@ ingestion pipeline. The demo focuses on:
 demo/
   notebooklm_sources/
     INC-2026-0001_callback_timeout_notebooklm_source.md
+docs/
+  connect_recordings_to_notebooklm.md
 prompts/
   gemini_incident_transcription_prompt.md
   notebooklm_demo_questions.md
@@ -36,6 +38,9 @@ requirements.txt
 
 The sample source already contains the labelled transcript, restoration summary,
 action items, and references that NotebookLM can cite.
+
+For the full connection flow from recording to Gemini to NotebookLM, see
+`docs/connect_recordings_to_notebooklm.md`.
 
 ## Process a real recording with Google AI Studio/Gemini
 
