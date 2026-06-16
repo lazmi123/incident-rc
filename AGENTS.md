@@ -34,3 +34,10 @@ documented in `README.md` and `docs/connect_recordings_to_notebooklm.md`.
   optional.
 - Generated output lands in `demo/generated/` (and `recordings/` for inputs),
   both of which are git-ignored.
+- The shipped CLI passes `audio_timestamp=True` to `generate_content`, which the
+  Gemini **Developer API** (an AI Studio `GOOGLE_API_KEY`) rejects with
+  `ValueError: audio_timestamp parameter is only supported in Gemini Enterprise
+  Agent Platform mode`. That flag is Vertex/Enterprise-only, so a full CLI run
+  against a plain AI Studio key fails on it. The upload + transcription + render
+  flow otherwise works against the Developer API when that flag is omitted (a
+  Vertex/Enterprise setup is needed to use the flag as written).
