@@ -1,0 +1,4 @@
+{
+  "name": "incident-rc RAG MVP",
+  "install": "sudo apt-get update && sudo apt-get install -y python3.12-venv && pip install --break-system-packages -r requirements.txt"
+}
