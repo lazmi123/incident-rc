@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import re
 import shutil
-import uuid
 from dataclasses import replace
 from pathlib import Path
 import sys
@@ -16,28 +16,61 @@ from rag_mvp.ingestion import ingest_documents
 from rag_mvp.retrieval import answer_question
 
 
+def slugify_name(name: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", name.strip().lower()).strip("-")
+    return slug
+
+
+def list_saved_files(folder: Path) -> list[str]:
+    if not folder.exists():
+        return []
+
+    files = []
+    for path in folder.rglob("*"):
+        if path.is_file() and path.suffix.lower() in {".pdf", ".txt", ".md"}:
+            files.append(path.name)
+    return sorted(files)
+
+
 load_dotenv()
 st.set_page_config(page_title="RAG Upload + Ask", page_icon="📄", layout="centered")
 
 st.title("📄 RAG Upload + Ask")
-st.caption("Upload documents, build an index, and ask grounded questions.")
-
-if "session_id" not in st.session_state:
-    st.session_state.session_id = uuid.uuid4().hex[:10]
-if "index_ready" not in st.session_state:
-    st.session_state.index_ready = False
-if "indexed_files" not in st.session_state:
-    st.session_state.indexed_files = []
+st.caption("Upload files once, save in ChromaDB, and ask from those sources.")
 
 base_settings = load_settings()
-session_id = st.session_state.session_id
+kb_name = st.text_input(
+    "Knowledge base name",
+    value=st.session_state.get("kb_name", "default"),
+    help="Files and vectors are persisted by this name.",
+)
+st.session_state.kb_name = kb_name
 
-data_dir = Path("uploaded_data") / session_id
-db_dir = Path("uploaded_chroma") / session_id
+kb_slug = slugify_name(kb_name)
+if not kb_slug:
+    st.error("Enter a valid knowledge base name (letters/numbers).")
+    st.stop()
+
+data_dir = Path("uploaded_data") / kb_slug
+db_dir = Path("uploaded_chroma") / kb_slug
 settings = replace(base_settings, data_dir=data_dir, db_dir=db_dir)
+
+saved_files = list_saved_files(data_dir)
+index_exists = db_dir.exists() and any(db_dir.iterdir())
 
 if not settings.google_api_key:
     st.warning("Missing GOOGLE_API_KEY. Add it to `.env` before asking questions.")
+
+st.info(
+    f"Persistent storage:\n- Files: `{data_dir}`\n- ChromaDB: `{db_dir}`",
+    icon="💾",
+)
+
+if index_exists:
+    st.success(
+        "Existing Chroma index found for this knowledge base. You can ask now.",
+        icon="✅",
+    )
 
 uploaded_files = st.file_uploader(
     "Upload files (.pdf, .txt, .md)",
@@ -47,59 +80,55 @@ uploaded_files = st.file_uploader(
 
 col1, col2 = st.columns(2)
 with col1:
-    build_clicked = st.button("Build index", use_container_width=True)
+    build_clicked = st.button("Save files + Build index", use_container_width=True)
 with col2:
-    reset_clicked = st.button("Reset session", use_container_width=True)
+    reset_clicked = st.button("Delete knowledge base", use_container_width=True)
 
 if reset_clicked:
     if data_dir.exists():
         shutil.rmtree(data_dir)
     if db_dir.exists():
         shutil.rmtree(db_dir)
-    st.session_state.index_ready = False
-    st.session_state.indexed_files = []
-    st.success("Session reset. Upload files and build index again.")
+    st.success(f"Deleted knowledge base '{kb_slug}'.")
 
 if build_clicked:
     try:
-        if not uploaded_files:
+        if not uploaded_files and not saved_files:
             st.error("Upload at least one file before building the index.")
         else:
-            if data_dir.exists():
-                shutil.rmtree(data_dir)
             data_dir.mkdir(parents=True, exist_ok=True)
 
-            saved_names: list[str] = []
-            for uploaded in uploaded_files:
+            uploaded_count = 0
+            for uploaded in uploaded_files or []:
                 destination = data_dir / uploaded.name
                 destination.write_bytes(uploaded.getbuffer())
-                saved_names.append(uploaded.name)
+                uploaded_count += 1
 
-            with st.spinner("Indexing uploaded files..."):
+            with st.spinner("Indexing files into ChromaDB..."):
                 doc_count, chunk_count = ingest_documents(settings, force_rebuild=True)
 
-            st.session_state.index_ready = True
-            st.session_state.indexed_files = saved_names
             st.success(
-                f"Index ready: {doc_count} document(s), {chunk_count} chunk(s) indexed."
+                "Index built and persisted.\n"
+                f"Uploaded {uploaded_count} file(s) this run.\n"
+                f"Indexed {doc_count} document(s) into {chunk_count} chunk(s)."
             )
     except Exception as exc:
-        st.session_state.index_ready = False
         st.error(f"Failed to build index: {exc}")
 
-if st.session_state.indexed_files:
-    st.subheader("Indexed files")
-    for name in st.session_state.indexed_files:
+saved_files = list_saved_files(data_dir)
+if saved_files:
+    st.subheader("Saved files in this knowledge base")
+    for name in saved_files:
         st.write(f"- {name}")
 
 st.divider()
-question = st.text_input("Ask a question from your uploaded files")
+question = st.text_input("Ask a question from the saved source files")
 ask_clicked = st.button("Get answer", type="primary", use_container_width=True)
 
 if ask_clicked:
     try:
-        if not st.session_state.index_ready:
-            st.error("Build the index first.")
+        if not (db_dir.exists() and any(db_dir.iterdir())):
+            st.error("No Chroma index found for this knowledge base. Build index first.")
         elif not question.strip():
             st.error("Enter a question.")
         else:

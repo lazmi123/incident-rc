@@ -40,14 +40,18 @@ PYTHONPATH=src streamlit run web_app.py
 ```
 
 In the browser app:
-1. Upload one or more files (`.pdf`, `.txt`, `.md`)
-2. Click **Build index**
-3. Ask questions with **Get answer**
-4. See grounded source file names in the **Sources** section
+1. Choose a **Knowledge base name** (for example `incident-kb`)
+2. Upload one or more files (`.pdf`, `.txt`, `.md`)
+3. Click **Save files + Build index**
+4. Ask questions with **Get answer**
+5. See grounded source file names in the **Sources** section
 
-The app stores session data under:
-- `uploaded_data/`
-- `uploaded_chroma/`
+The app persists data by knowledge base name:
+- uploaded files are saved under `uploaded_data/<knowledge-base-name>/`
+- Chroma vectors are saved under `uploaded_chroma/<knowledge-base-name>/`
+
+When you open the app later and select the same knowledge base name,
+it reuses the saved ChromaDB index and files.
 
 ## 3) Add documents
 
