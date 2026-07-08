@@ -8,9 +8,16 @@ Gemini grounded answers). There is no server/web UI; it is a CLI. See `README.md
 full command reference.
 
 ### Environment / running caveats
-- Dependencies are installed into the system site with `pip install --break-system-packages`.
-  `python3 -m venv` does **not** work on this base image (missing `ensurepip`), so a venv is
-  intentionally not used; the startup update script installs deps directly.
+- The Cursor Cloud environment is defined by `.cursor/environment.json` (source of truth when
+  committed). Its `install` step runs `sudo apt-get install -y python3.12-venv` and
+  `pip install --break-system-packages -r requirements.txt`; Cursor checkpoints the resulting
+  disk into a snapshot, so dependencies are **not** reinstalled on every session.
+- Dependencies are installed into the system site with `pip install --break-system-packages`,
+  so the documented run command (`PYTHONPATH=src python3 -m rag_mvp.cli ...`) works with the
+  default `python3` without activating anything.
+- `python3 -m venv` works (the base image lacks `ensurepip`, so `python3.12-venv` is installed
+  by the `install` step). A venv is optional; create one only if you want isolation, and then
+  `pip install -r requirements.txt` inside it.
 - `GOOGLE_API_KEY` is provided as a secret/env var, so `.env` is optional — `load_dotenv()`
   does not override an already-set env var. Only the `ask`/`chat` commands need the key;
   `ingest`/`clean` work without it.
