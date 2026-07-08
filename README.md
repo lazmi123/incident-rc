@@ -13,6 +13,7 @@ Documents -> Embeddings -> ChromaDB -> Retriever -> Gemini
 - Local vector DB with ChromaDB (persisted on disk)
 - Local embeddings using sentence-transformers (no paid embedding API required)
 - Gemini for grounded answer generation
+- Streamlit web app for upload + ask workflow
 - Simple CLI (`ingest`, `ask`, `chat`, `clean`)
 
 ## 1) Setup
@@ -32,7 +33,23 @@ cp .env.example .env
 
 Set `GOOGLE_API_KEY` in `.env` from Google AI Studio.
 
-## 2) Add documents
+## 2) Run the web app (upload + ask)
+
+```bash
+PYTHONPATH=src streamlit run web_app.py
+```
+
+In the browser app:
+1. Upload one or more files (`.pdf`, `.txt`, `.md`)
+2. Click **Build index**
+3. Ask questions with **Get answer**
+4. See grounded source file names in the **Sources** section
+
+The app stores session data under:
+- `uploaded_data/`
+- `uploaded_chroma/`
+
+## 3) Add documents
 
 Put files in `data/`:
 
@@ -40,7 +57,7 @@ Put files in `data/`:
 - `data/**/*.txt`
 - `data/**/*.md`
 
-## 3) Build index (ingest)
+## 4) Build index (ingest)
 
 Option A (CLI module):
 
@@ -60,7 +77,7 @@ Force full rebuild:
 PYTHONPATH=src python3 -m rag_mvp.cli ingest --force-rebuild
 ```
 
-## 4) Ask questions
+## 5) Ask questions
 
 One question:
 
@@ -86,7 +103,7 @@ or just:
 python3 ask.py
 ```
 
-## 5) Clean local vector DB
+## 6) Clean local vector DB
 
 ```bash
 PYTHONPATH=src python3 -m rag_mvp.cli clean

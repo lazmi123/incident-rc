@@ -5,3 +5,5 @@ __pycache__/
 .env
 chroma_db/
 logs/
+uploaded_data/
+uploaded_chroma/
