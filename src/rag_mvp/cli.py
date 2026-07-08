@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import sys
 
 from dotenv import load_dotenv
 
@@ -78,15 +79,18 @@ def main() -> None:
     load_dotenv()
     parser = build_parser()
     args = parser.parse_args()
-
-    if args.command == "ingest":
-        cmd_ingest(force_rebuild=args.force_rebuild)
-    elif args.command == "ask":
-        cmd_ask(question=args.question)
-    elif args.command == "chat":
-        cmd_chat()
-    elif args.command == "clean":
-        cmd_clean()
+    try:
+        if args.command == "ingest":
+            cmd_ingest(force_rebuild=args.force_rebuild)
+        elif args.command == "ask":
+            cmd_ask(question=args.question)
+        elif args.command == "chat":
+            cmd_chat()
+        elif args.command == "clean":
+            cmd_clean()
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":
